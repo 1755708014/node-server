@@ -1,23 +1,30 @@
 var http = require('http')
+var path = require('path')
 var url = require('url')
 var fs = require('fs')
 
-http.createServer(function (req, res) {
+function staticRoot (staticRoot, req, res) {
+  console.log(staticRoot, req.url)
   var pathObj = url.parse(req.url, true)
-  if (pathObj.pathname.includes('/api')) {
-	console.log(pathObj.pathname === '/api/getInfo')
-	switch (pathObj.pathname) {
-	  case '/api/getInfo':
-		res.end(JSON.stringify({ code: 200, msg: 'getInfo接口获取成功', data: { name: '小二郎' } }))
-		break
-	  case '/api/list':
-		res.end(JSON.stringify({ code: 200, msg: 'list接口获取成功', data: ['西瓜','苹果', '无花果']}))
-		break
-	  default:
-		res.end(JSON.stringify({ code: 500, msg: pathObj.pathname }))
-		break
+  var filePath = path.join(staticRoot, pathObj.pathname)
+  fs.readFile(filePath, 'binary', (err, fileContent) => {
+    if (err){
+      console.log('404')
+	  res.writeHead(404)
+	  res.end('404 not Found')
+	} else {
+      console.log('OK')
+	  res.writeHead(200)
+	  res.write(fileContent, 'binary')
+	  res.end()
 	}
-  } else {
-	res.end(fs.readFileSync(__dirname + '/sample' + pathObj.pathname))
-  }
-}).listen(8080)
+  })
+  console.log(pathObj)
+}
+
+var server = http.createServer((req, res) => {
+  staticRoot(path.join(__dirname, 'static'), req, res)
+})
+
+server.listen(9999)
+console.log('Server is running at http://127.0.0.1:9999/')
